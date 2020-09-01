@@ -16,6 +16,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.FileUtils;
 import android.os.PowerManager;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
@@ -42,11 +43,11 @@ class MainActivity extends AppCompatActivity {
     Button download;
     Button upload;
     TextView progress;
-    Uri audioUri;
+    Uri uri;
+
 
     FirebaseStorage storage;
     FirebaseDatabase database;
-    StorageReference storageReference;
     StorageReference ref;
 
     ProgressDialog progressDialog;
@@ -85,8 +86,8 @@ class MainActivity extends AppCompatActivity {
             @Override
             public
             void onClick(View view) {
-                if(audioUri!=null)
-                    uploadAudioFile(audioUri);
+                if(uri!=null)
+                    uploadAudioFile(uri);
                 else
                     Toast.makeText(MainActivity.this,"Select a file", Toast.LENGTH_SHORT).show();
             }
@@ -97,7 +98,7 @@ class MainActivity extends AppCompatActivity {
             public
             void onClick(View view) {
                 downloadFile();
-                Toast.makeText(MainActivity.this,"downloading statred", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this,"downloading started", Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -111,7 +112,7 @@ class MainActivity extends AppCompatActivity {
             public
             void onSuccess(Uri uri) {
 
-                String url = uri.toString();
+                String Uri = uri.toString();
                 downloadFileFromFirebase(MainActivity.this,"audio",".mp3", DIRECTORY_DOWNLOADS, uri);
             }
 
@@ -137,7 +138,7 @@ class MainActivity extends AppCompatActivity {
     }
 
     private
-    void uploadAudioFile(Uri audioUri) {
+    void uploadAudioFile(Uri uri) {
 
         progressDialog = new ProgressDialog(this);
         progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
@@ -149,24 +150,26 @@ class MainActivity extends AppCompatActivity {
 
         StorageReference storageReference = storage.getReference();
 
-        storageReference.child("uploads/audio.mp3").child(fileName).putFile(audioUri)
+        storageReference.child("uploads").child(fileName).putFile(uri)
                 .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                     @Override
                     public
                     void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                        Task<Uri> downloadUrl = taskSnapshot.getStorage().getDownloadUrl();
+                     /**   String url = taskSnapshot.getDownloadUrl().toString;**/
+                        Task<Uri> url= taskSnapshot.getStorage().getDownloadUrl();
+
                         DatabaseReference databaseReference = database.getReference();
-                        databaseReference.child(fileName).setValue(downloadUrl)
+
+                        databaseReference.child(fileName).setValue(url)
                                 .addOnCompleteListener(new OnCompleteListener<Void>() {
                                     @Override
                                     public
                                     void onComplete(@NonNull Task<Void> task) {
 
-                                        if(task.isSuccessful()){
-                                            Toast.makeText(MainActivity.this,"File Successfully uploaded", Toast.LENGTH_SHORT).show();
-                                        }
-                                        else
-                                            Toast.makeText(MainActivity.this,"File Not Successfully uploaded", Toast.LENGTH_SHORT).show();
+                                        if (task.isSuccessful()) {
+                                            Toast.makeText(MainActivity.this, "File Successfully uploaded", Toast.LENGTH_SHORT).show();
+                                        } else
+                                            Toast.makeText(MainActivity.this, "File Not Successfully uploaded", Toast.LENGTH_SHORT).show();
                                     }
 
                                 });
@@ -222,7 +225,7 @@ class MainActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == 1001 && resultCode == RESULT_OK && data != null) {
             progress.setText("A file selected " + data.getData().getLastPathSegment());
-            audioUri = data.getData();
+            uri = data.getData();
         } else {
             Toast.makeText(MainActivity.this, "Please select a file", Toast.LENGTH_SHORT).show();
         }
